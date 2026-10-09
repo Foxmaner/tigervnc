@@ -16,6 +16,7 @@ add_library(rfb STATIC
   OverlayContentPng.cxx
   OverlayContentQr.cxx
   OverlayContentText.cxx
+  OverlayContentVideoDebugger.cxx
   OverlayPixelBuffer.cxx
   PixelBuffer.cxx
   PixelFormat.cxx

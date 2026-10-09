@@ -38,6 +38,7 @@
 #include "rfb/OverlayContentQr.h"
 #include "rfb/OverlayContentText.h"
 #include <rfb/OverlayPixelBuffer.h>
+#include <rfb/OverlayContentVideoDebugger.h>
 
 #include <pixman.h>
 
@@ -190,7 +191,15 @@ void OverlayPixelBuffer::renderOverlay() {
     _content = new OverlayContentPng(_overlayInput, targetHeight);
   else if (_overlayType == "qr")
     _content = new OverlayContentQr(_overlayInput, targetHeight);
-  else
+  else if (_overlayType == "video_debugger") {
+    // TODO: This is only a temporary placeholder for the overlay. Need real data.
+    core::Region detectedZones;
+    detectedZones.assign_union(core::Region(core::Rect(50, 40, 370, 220)));
+    detectedZones.assign_union(core::Region(core::Rect(420, 300, 900, 570)));
+    detectedZones.assign_union(core::Region(core::Rect(150, 450, 330, 600)));
+    _content = new OverlayContentVideoDebugger(_overlayInput, detectedZones,
+                                               width(), height());
+  } else
     _content =
         new OverlayContentText(_overlayInput, targetHeight, _overlayFont);
 
