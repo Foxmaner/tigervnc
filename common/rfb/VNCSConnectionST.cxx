@@ -118,7 +118,8 @@ VNCSConnectionST::VNCSConnectionST(VNCServerST* server_, network::Socket* s,
                                            overlayInput.getValueStr().c_str(),
                                            overlayAlpha, overlaySize,
                                            overlayPadding,
-                                           overlayFont.getValueStr().c_str());
+                                           overlayFont.getValueStr().c_str(),
+                                           server->getVideoDetector());
   }
 }
 

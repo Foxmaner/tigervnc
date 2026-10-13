@@ -32,6 +32,7 @@
 #include <rfb/Blacklist.h>
 #include <rfb/Cursor.h>
 #include <rfb/ScreenSet.h>
+#include <rfb/VideoDetector.h>
 
 namespace rfb {
 
@@ -118,6 +119,7 @@ namespace rfb {
     const char* getName() const { return name.c_str(); }
     unsigned getLEDState() const { return ledState; }
     bool isDesktopReady() const { return desktopStarted; }
+    const VideoDetector* getVideoDetector() const { return &videoDetector; }
 
     // Event handlers
     void keyEvent(uint32_t keysym, uint32_t keycode, bool down);
@@ -207,6 +209,8 @@ namespace rfb {
     bool renderedCursorInvalid;
 
     KeyRemapper* keyRemapper;
+
+    VideoDetector videoDetector;
 
     core::Timer idleTimer;
     core::Timer disconnectTimer;

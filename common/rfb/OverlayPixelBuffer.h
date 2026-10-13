@@ -14,12 +14,15 @@
 
 namespace rfb {
 
+class VideoDetector;
+
 class OverlayPixelBuffer : public ManagedPixelBuffer {
 public:
   OverlayPixelBuffer(const PixelBuffer* parentBuf, const char* overlayType,
                      const char* overlayPos, const char* overlayInput,
                      const int overlayAlpha, int overlaySize,
-                     int overlayPadding, const char* overlayFont);
+                     int overlayPadding, const char* overlayFont,
+                     const VideoDetector* videoDetector);
   virtual ~OverlayPixelBuffer();
 
   virtual const uint8_t* getBuffer(const core::Rect& r,
@@ -66,6 +69,7 @@ private:
   int _overlayPadding;
   double _overlayAlpha;
   std::string _overlayFont;
+  const VideoDetector* _videoDetector;
 };
 
 }; // namespace rfb

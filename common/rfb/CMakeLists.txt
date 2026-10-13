@@ -22,6 +22,7 @@ add_library(rfb STATIC
   PixelFormat.cxx
   Security.cxx
   UpdateTracker.cxx
+  VideoDetector.cxx
   encodings.cxx
   obfuscate.cxx
   ${CMAKE_SOURCE_DIR}/common/qrcodegen/qrcodegen.cpp)
