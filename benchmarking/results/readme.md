@@ -1,0 +1,1 @@
+Test results are generated in this folder
