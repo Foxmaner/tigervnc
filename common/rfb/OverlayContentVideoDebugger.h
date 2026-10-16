@@ -9,12 +9,14 @@
 #include <string>
 
 #include <core/Region.h>
+#include <core/Timer.h>
 
 #include <rfb/OverlayContent.h>
 
 namespace rfb {
 
-class OverlayContentVideoDebugger : public OverlayContent {
+class OverlayContentVideoDebugger : public OverlayContent,
+                                    public core::Timer::Callback {
 public:
   OverlayContentVideoDebugger(const std::string& groundTruth,
                               const core::Region& detectedZones, int width,
@@ -36,7 +38,15 @@ private:
                                            int width, int height,
                                            int* outWidth, int* outHeight);
 
+  // Logs the pixel counts of true/false positives/negatives of the
+  // detected zones against the ground truth, ten times per second
+  void handleTimeout(core::Timer* t) override;
+
   uint8_t* _buffer;
+  core::Region _groundTruth;
+  const core::Region& _detectedZones;
+  core::Rect _screen;
+  core::Timer _measurementTimer;
 };
 
 } // namespace rfb

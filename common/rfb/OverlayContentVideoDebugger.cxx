@@ -25,14 +25,48 @@ static core::LogWriter vlog("OverlayContentVideoDebugger");
 // Width in pixels of the border drawn around each video zone
 static const int borderWidth = 3;
 
+// Milliseconds between each measurement against the ground truth
+static const int measurementInterval = 100;
+
+static unsigned measurementCount = 0;
+
 OverlayContentVideoDebugger::OverlayContentVideoDebugger(const std::string& groundTruth, const core::Region& detectedZones,int width, int height)
-    : _buffer(nullptr) {
+    : _buffer(nullptr), _groundTruth(parseZones(groundTruth)),
+      _detectedZones(detectedZones), _screen(0, 0, width, height),
+      _measurementTimer(this) {
   _width = _height = 0;
-  _buffer = generateVideoDebugBuffer(parseZones(groundTruth), detectedZones,
+  _buffer = generateVideoDebugBuffer(_groundTruth, detectedZones,
                                      width, height, &_width, &_height);
+  _measurementTimer.start(measurementInterval);
 }
 
 OverlayContentVideoDebugger::~OverlayContentVideoDebugger() { delete[] _buffer; }
+
+static unsigned long long regionArea(const core::Region& region) {
+  std::vector<core::Rect> rects;
+  unsigned long long area = 0;
+
+  region.get_rects(&rects);
+  for (const core::Rect& r : rects)
+    area += r.area();
+
+  return area;
+}
+
+void OverlayContentVideoDebugger::handleTimeout(core::Timer* /*t*/) {
+  core::Region detected = _detectedZones.intersect(_screen);
+  core::Region truth = _groundTruth.intersect(_screen);
+
+  unsigned long long tp = regionArea(detected.intersect(truth));
+  unsigned long long fp = regionArea(detected) - tp;
+  unsigned long long fn = regionArea(truth) - tp;
+  unsigned long long tn = _screen.area() - tp - fp - fn;
+
+  vlog.info("Measurement: sample=%u tp=%llu tn=%llu fp=%llu fn=%llu",
+            ++measurementCount, tp, tn, fp, fn);
+
+  _measurementTimer.repeat();
+}
 
 //Parse the zones from overlayInput string
 core::Region OverlayContentVideoDebugger::parseZones(const std::string& zones) {

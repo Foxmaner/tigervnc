@@ -20,9 +20,13 @@
 #include <config.h>
 #endif
 
+#include <core/LogWriter.h>
+
 #include <rfb/VideoDetector.h>
 
 using namespace rfb;
+
+static core::LogWriter vlog("VideoDetector");
 
 VideoDetector::VideoDetector()
 {
