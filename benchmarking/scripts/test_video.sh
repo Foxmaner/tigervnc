@@ -70,7 +70,8 @@ for _ in $(seq 50); do
   sleep 0.1
 done
 
-vncviewer localhost:$DISPLAY_NUM >"$RESULT_DIR/viewer.log" 2>&1 &
+# Dont let client resize
+vncviewer -RemoteResize=0 localhost:$DISPLAY_NUM >"$RESULT_DIR/viewer.log" 2>&1 &
 VIEWER_PID=$!
 sleep 1
 
