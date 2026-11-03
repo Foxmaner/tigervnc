@@ -40,6 +40,16 @@ VideoDetector::~VideoDetector()
 {
 }
 
+void VideoDetector::init(const PixelBuffer* /*pb*/)
+{
+  // TODO: Reset state for the new framebuffer
+}
+
+void VideoDetector::addChanged(const core::Region& /*changed*/)
+{
+  // TODO: Update videoRegion based on the changed areas
+}
+
 const core::Region& VideoDetector::getVideoRegion() const
 {
   return videoRegion;

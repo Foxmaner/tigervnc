@@ -23,10 +23,19 @@
 
 namespace rfb {
 
+  class PixelBuffer;
+
   class VideoDetector {
   public:
     VideoDetector();
     ~VideoDetector();
+
+    // Called when the framebuffer is set or changes size
+    void init(const PixelBuffer* pb);
+
+    // Called with the areas of the framebuffer that have actually
+    // changed, after the comparison has removed unchanged pixels
+    void addChanged(const core::Region& changed);
 
     const core::Region& getVideoRegion() const;
 

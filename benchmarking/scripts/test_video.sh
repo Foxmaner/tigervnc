@@ -7,6 +7,9 @@
 #
 # Usage: test_video.sh <video.webm> [test name]
 #
+# Extra options for Xvnc can be given in XVNC_ARGS, e.g.
+# XVNC_ARGS="-Log *:stderr:30,VideoDetector:stderr:100"
+#
 
 set -euo pipefail
 
@@ -62,6 +65,7 @@ remove_x_files
   -OverlayPos tl \
   -OverlayPadding 0 \
   -OverlayAlpha 100 \
+  ${XVNC_ARGS:-} \
   >"$RESULT_DIR/Xvnc.log" 2>&1 &
 XVNC_PID=$!
 

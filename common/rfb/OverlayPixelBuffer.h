@@ -11,10 +11,10 @@
 
 #include <rfb/OverlayContent.h>
 #include <rfb/PixelBuffer.h>
+#include <rfb/VideoDetector.h>
 
 namespace rfb {
 
-class VideoDetector;
 
 class OverlayPixelBuffer : public ManagedPixelBuffer {
 public:
