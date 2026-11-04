@@ -23,6 +23,7 @@
 #include <core/LogWriter.h>
 
 #include <rfb/VideoDetector.h>
+#include <rfb/PixelBuffer.h>
 
 using namespace rfb;
 
@@ -40,9 +41,15 @@ VideoDetector::~VideoDetector()
 {
 }
 
-void VideoDetector::init(const PixelBuffer* /*pb*/)
+void VideoDetector::init(const PixelBuffer* pb)
 {
   // TODO: Reset state for the new framebuffer
+  cells.clear();
+  int nrOfCols = (pb->width() + GRID_WIDTH - 1) / GRID_WIDTH;
+  int nrOfRows = (pb->height() + GRID_HEIGHT - 1) / GRID_HEIGHT;
+
+  cells.assign(nrOfCols*nrOfRows, Cell());
+  vlog.error("VIDEO nrOfCells: %zu",cells.size());
 }
 
 void VideoDetector::addChanged(const core::Region& /*changed*/)

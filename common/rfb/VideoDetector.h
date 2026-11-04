@@ -19,7 +19,9 @@
 #ifndef __RFB_VIDEODETECTOR_H__
 #define __RFB_VIDEODETECTOR_H__
 
+#include "core/Rect.h"
 #include <core/Region.h>
+#include <vector>
 
 namespace rfb {
 
@@ -27,6 +29,10 @@ namespace rfb {
 
   class VideoDetector {
   public:
+    // Size in pixels of each grid cell
+    static const int GRID_WIDTH = 16;
+    static const int GRID_HEIGHT = 16;
+
     VideoDetector();
     ~VideoDetector();
 
@@ -41,6 +47,10 @@ namespace rfb {
 
   private:
     core::Region videoRegion;
+    struct Cell{
+      int changeCount;
+    };
+    std::vector<Cell> cells;
   };
 
 }

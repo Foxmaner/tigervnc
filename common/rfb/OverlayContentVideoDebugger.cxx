@@ -15,6 +15,7 @@
 #include <core/string.h>
 
 #include <rfb/OverlayContentVideoDebugger.h>
+#include <rfb/VideoDetector.h>
 
 #include <pixman.h>
 
@@ -92,6 +93,27 @@ core::Region OverlayContentVideoDebugger::parseZones(const std::string& zones) {
   return region;
 }
 
+// Draws 1px lines along the VideoDetector grid cell boundaries
+static void drawGrid(pixman_image_t* destImage, int width, int height,
+                     const pixman_color_t& color) {
+  std::vector<pixman_rectangle16_t> lines;
+
+  for (int x = VideoDetector::GRID_WIDTH; x < width;
+       x += VideoDetector::GRID_WIDTH)
+    lines.push_back({static_cast<int16_t>(x), 0, 1,
+                     static_cast<uint16_t>(height)});
+  for (int y = VideoDetector::GRID_HEIGHT; y < height;
+       y += VideoDetector::GRID_HEIGHT)
+    lines.push_back({0, static_cast<int16_t>(y),
+                     static_cast<uint16_t>(width), 1});
+
+  if (lines.empty())
+    return;
+
+  pixman_image_fill_rectangles(PIXMAN_OP_SRC, destImage, &color,
+                               lines.size(), lines.data());
+}
+
 // Draws every rectangle of the zones with a solid border. With pixman.
 static void drawZones(pixman_image_t* destImage, const core::Region& zones,
                       const pixman_color_t* fillColor,
@@ -160,6 +182,7 @@ uint8_t* OverlayContentVideoDebugger::generateVideoDebugBuffer(
   pixman_color_t detectedFillColor = {0x4000, 0x0000, 0x0000, 0x4000};
   pixman_color_t detectedBorderColor = {0xffff, 0x0000, 0x0000, 0xffff};
   pixman_color_t groundTruthBorderColor = {0x0000, 0xffff, 0x0000, 0xffff};
+  pixman_color_t gridColor = {0xffff, 0xffff, 0xffff, 0xffff};
 
   core::Rect fbRect(0, 0, width, height);
   core::Region detected = detectedZones.intersect(fbRect);
@@ -167,6 +190,9 @@ uint8_t* OverlayContentVideoDebugger::generateVideoDebugBuffer(
 
   vlog.debug("Rendering %d detected and %d ground truth video zone rect(s)",
              detected.numRects(), truth.numRects());
+
+  // The grid is drawn first so the zones are drawn on top of it
+  drawGrid(destImage, width, height, gridColor);
 
   // Ground truth is drawn last so it stays visible where the zones overlap
   drawZones(destImage, detected, &detectedFillColor, detectedBorderColor);
