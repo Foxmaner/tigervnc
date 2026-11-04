@@ -44,6 +44,7 @@ VideoDetector::~VideoDetector()
 void VideoDetector::init(const PixelBuffer* pb)
 {
   // TODO: Reset state for the new framebuffer
+  videoRegion.clear();
   cells.clear();
   int nrOfCols = (pb->width() + GRID_WIDTH - 1) / GRID_WIDTH;
   int nrOfRows = (pb->height() + GRID_HEIGHT - 1) / GRID_HEIGHT;
@@ -52,7 +53,7 @@ void VideoDetector::init(const PixelBuffer* pb)
   vlog.error("VIDEO nrOfCells: %zu",cells.size());
 }
 
-void VideoDetector::addChanged(const core::Region& /*changed*/)
+void VideoDetector::addChanged(const core::Region& changed)
 {
   // TODO: Update videoRegion based on the changed areas
 }
