@@ -56,6 +56,8 @@ void VideoDetector::init(const PixelBuffer* pb)
 void VideoDetector::addChanged(const core::Region& changed)
 {
   // TODO: Update videoRegion based on the changed areas
+  //videoRegion.assign_union(changed);
+  (void)changed;
 }
 
 const core::Region& VideoDetector::getVideoRegion() const
