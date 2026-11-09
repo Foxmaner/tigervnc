@@ -21,6 +21,8 @@
 
 #include "core/Rect.h"
 #include <core/Region.h>
+#include <cstdint>
+#include <sys/time.h>
 #include <vector>
 
 namespace rfb {
@@ -29,8 +31,18 @@ class PixelBuffer;
 
 class VideoDetector {
 public:
-  // Size in pixels of each grid cell
+  //Setting variables to tune
+  //_________________________
+  // Min/Max size of the grid cells in the quadtree.
   static const int GRID_SIZE_MAX = 128;
+  static const int GRID_SIZE_MIN = 8;
+
+  static const unsigned BUCKET_MS = 100; // Milliseconds per bucket in the history
+  static const unsigned HISTORY_BUCKETS = 50; // Number of buckets in the history (Maximun 64!!!)
+  static const unsigned HISTORY_MS = BUCKET_MS * HISTORY_BUCKETS; // Total history time
+  static constexpr double MIN_THRESHOLD_BUCKET_RATIO = 0.5; // Minimum number of changed buckets to be considered video
+  static constexpr double MIN_VIDEO_REGION_RATIO = 0.25; // Minimum ratio of video region to framebuffer area to be considered video
+  //_________________________
 
   VideoDetector();
   ~VideoDetector();
@@ -49,7 +61,9 @@ private:
 
   struct Cell {
     core::Rect rect;
-    bool changed = false;
+    uint64_t historicalBuckets = 0; // Bitfield of the last HISTORY_BUCKETS buckets, 1 = changed, 0 = unchanged
+    unsigned lastBucket = 0; // The last bucket index when the cell was updated
+    bool active = false; // True if cell is concidered to be video
   };
 
   std::vector<Cell> cells;
@@ -58,6 +72,12 @@ private:
   int nrOfSuperRows = 0;
 
   core::Rect fbRect;
+
+  timeval startTime; // Time when VideoDetector was initialized
+
+  unsigned currentBucket() const; // Returns the current bucket index based on the elapsed time since startTime
+  void ageCell(Cell &cell, unsigned now); //Ages the cells historicalBuckets to the current bucket.
+  unsigned countChangedBuckets(const Cell &cell) const; // Counts the number of changed buckets in the cell's historicalBuckets
 };
 
 } // namespace rfb

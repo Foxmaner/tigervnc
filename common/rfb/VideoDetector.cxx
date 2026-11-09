@@ -23,6 +23,7 @@
 #include <algorithm>
 
 #include <core/LogWriter.h>
+#include <core/time.h>
 
 #include <rfb/PixelBuffer.h>
 #include <rfb/VideoDetector.h>
@@ -40,6 +41,7 @@ void VideoDetector::init(const PixelBuffer *pb) {
   videoRegion.clear();
   cells.clear();
   fbRect = pb->getRect();
+  gettimeofday(&startTime, nullptr);
   nrOfSuperCols = (pb->width() + GRID_SIZE_MAX - 1) / GRID_SIZE_MAX;
   nrOfSuperRows = (pb->height() + GRID_SIZE_MAX - 1) / GRID_SIZE_MAX;
 
@@ -69,9 +71,11 @@ bool VideoDetector::addChanged(const core::Region &changed) {
   if (cells.empty())
     return false;
 
-  // Reset the changed state of all cells, as no history is yet implemented.
-  for (Cell &cell : cells)
-    cell.changed = false;
+  unsigned now = currentBucket();
+  //Age each cell each pass
+  for (Cell &cell : cells) {
+    ageCell(cell, now);
+  }
 
   changed.get_rects(&rects);
   for (const core::Rect &r : rects) {
@@ -87,15 +91,26 @@ bool VideoDetector::addChanged(const core::Region &changed) {
     int intersectRowEnd =
         std::min((r.br.y - 1) / GRID_SIZE_MAX, nrOfSuperRows - 1);
 
+    //Mark cells intersecting with damage as video by setting the current bucket to 1    
     for (int row = intersectRowStart; row <= intersectRowEnd; row++) {
-      for (int col = intersectColStart; col <= intersectColEnd; col++)
-        cells[row * nrOfSuperCols + col].changed = true;
+      for (int col = intersectColStart; col <= intersectColEnd; col++) {
+        Cell &cell = cells[row * nrOfSuperCols + col];
+        cell.historicalBuckets = cell.historicalBuckets | 1;
+      }
     }
   }
 
-  for (const Cell &cell : cells) {
-    if (cell.changed)
+  //Determine which cells have had enough damage to be concidered video
+  for (Cell &cell : cells) {
+    unsigned changedBuckets = countChangedBuckets(cell);
+    if (changedBuckets >= MIN_THRESHOLD_BUCKET_RATIO * HISTORY_BUCKETS) {
+      cell.active = true;
+    } else {
+      cell.active = false;
+    }
+    if (cell.active) {
       region.assign_union(cell.rect);
+    }
   }
 
   oldVideoRegion = videoRegion;
@@ -103,6 +118,34 @@ bool VideoDetector::addChanged(const core::Region &changed) {
 
   // Return if the video region has changed
   return videoRegion != oldVideoRegion;
+}
+
+unsigned VideoDetector::currentBucket() const {
+  return core::msSince(&startTime) / BUCKET_MS;
+}
+
+void VideoDetector::ageCell(Cell &cell, unsigned now) {
+  //Age cell by shifting historicalbuckets to the left by the number of passed buckets since last call.
+  unsigned passed = now - cell.lastBucket;
+
+  if (passed >= HISTORY_BUCKETS)
+    cell.historicalBuckets = 0;
+  else
+    cell.historicalBuckets = cell.historicalBuckets << passed;
+
+  cell.lastBucket = now;
+}
+
+unsigned VideoDetector::countChangedBuckets(const Cell &cell) const {
+  //Counts the number of 1:s in the historicalBuckets bitfield
+  unsigned count = 0;
+
+  for (unsigned i = 0; i < HISTORY_BUCKETS; i++) {
+    if ((cell.historicalBuckets >> i) & 1)
+      count++;
+  }
+
+  return count;
 }
 
 const core::Region &VideoDetector::getVideoRegion() const {
