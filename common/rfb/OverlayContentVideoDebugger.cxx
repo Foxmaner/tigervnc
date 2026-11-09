@@ -98,12 +98,12 @@ static void drawGrid(pixman_image_t* destImage, int width, int height,
                      const pixman_color_t& color) {
   std::vector<pixman_rectangle16_t> lines;
 
-  for (int x = VideoDetector::GRID_WIDTH; x < width;
-       x += VideoDetector::GRID_WIDTH)
+  for (int x = VideoDetector::GRID_SIZE_MAX; x < width;
+       x += VideoDetector::GRID_SIZE_MAX)
     lines.push_back({static_cast<int16_t>(x), 0, 1,
                      static_cast<uint16_t>(height)});
-  for (int y = VideoDetector::GRID_HEIGHT; y < height;
-       y += VideoDetector::GRID_HEIGHT)
+  for (int y = VideoDetector::GRID_SIZE_MAX; y < height;
+       y += VideoDetector::GRID_SIZE_MAX)
     lines.push_back({0, static_cast<int16_t>(y),
                      static_cast<uint16_t>(width), 1});
 

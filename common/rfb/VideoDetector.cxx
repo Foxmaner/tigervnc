@@ -20,6 +20,8 @@
 #include <config.h>
 #endif
 
+#include <algorithm>
+
 #include <core/LogWriter.h>
 
 #include <rfb/PixelBuffer.h>
@@ -37,24 +39,70 @@ void VideoDetector::init(const PixelBuffer *pb) {
   // Reset the state after a new framebuffer
   videoRegion.clear();
   cells.clear();
-  int nrOfCols = (pb->width() + GRID_WIDTH - 1) / GRID_WIDTH;
-  int nrOfRows = (pb->height() + GRID_HEIGHT - 1) / GRID_HEIGHT;
+  fbRect = pb->getRect();
+  nrOfSuperCols = (pb->width() + GRID_SIZE_MAX - 1) / GRID_SIZE_MAX;
+  nrOfSuperRows = (pb->height() + GRID_SIZE_MAX - 1) / GRID_SIZE_MAX;
 
-  cells.assign(nrOfCols * nrOfRows, Cell());
-  vlog.debug("VIDEO nrOfCells: %zu", cells.size());
+  cells.resize(nrOfSuperCols * nrOfSuperRows);
+
+  // Assign each cell to a rectangle in the framebuffer
+  for (int row = 0; row < nrOfSuperRows; row++) {
+    for (int col = 0; col < nrOfSuperCols; col++) {
+      int x1 = col * GRID_SIZE_MAX;
+      int y1 = row * GRID_SIZE_MAX;
+      int x2 = x1 + GRID_SIZE_MAX;
+      int y2 = y1 + GRID_SIZE_MAX;
+
+      cells[row * nrOfSuperCols + col].rect = core::Rect(x1, y1, x2, y2);
+    }
+  }
+  vlog.debug("nrOfCells: %zu", cells.size());
 }
 
 // Returns true if the region has changed
 bool VideoDetector::addChanged(const core::Region &changed) {
+  std::vector<core::Rect> rects;
+  core::Region region;
+  core::Region oldVideoRegion;
 
-  core::Region oldVideoRegion = videoRegion;
-  videoRegion = changed;
-
-  if (oldVideoRegion != videoRegion) {
-    return true;
-  } else {
+  // If framebuffer is empty, return false.
+  if (cells.empty())
     return false;
+
+  // Reset the changed state of all cells, as no history is yet implemented.
+  for (Cell &cell : cells)
+    cell.changed = false;
+
+  changed.get_rects(&rects);
+  for (const core::Rect &r : rects) {
+    if (r.is_empty())
+      continue;
+
+    // Find the grid cells that intersect with the changed rectangle, and mark
+    // them as changed
+    int intersectColStart = std::max(r.tl.x / GRID_SIZE_MAX, 0);
+    int intersectRowStart = std::max(r.tl.y / GRID_SIZE_MAX, 0);
+    int intersectColEnd =
+        std::min((r.br.x - 1) / GRID_SIZE_MAX, nrOfSuperCols - 1);
+    int intersectRowEnd =
+        std::min((r.br.y - 1) / GRID_SIZE_MAX, nrOfSuperRows - 1);
+
+    for (int row = intersectRowStart; row <= intersectRowEnd; row++) {
+      for (int col = intersectColStart; col <= intersectColEnd; col++)
+        cells[row * nrOfSuperCols + col].changed = true;
+    }
   }
+
+  for (const Cell &cell : cells) {
+    if (cell.changed)
+      region.assign_union(cell.rect);
+  }
+
+  oldVideoRegion = videoRegion;
+  videoRegion = region.intersect(fbRect);
+
+  // Return if the video region has changed
+  return videoRegion != oldVideoRegion;
 }
 
 const core::Region &VideoDetector::getVideoRegion() const {

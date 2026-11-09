@@ -30,8 +30,7 @@ class PixelBuffer;
 class VideoDetector {
 public:
   // Size in pixels of each grid cell
-  static const int GRID_WIDTH = 16;
-  static const int GRID_HEIGHT = 16;
+  static const int GRID_SIZE_MAX = 128;
 
   VideoDetector();
   ~VideoDetector();
@@ -47,10 +46,18 @@ public:
 
 private:
   core::Region videoRegion;
+
   struct Cell {
-    int changeCount;
+    core::Rect rect;
+    bool changed = false;
   };
+
   std::vector<Cell> cells;
+
+  int nrOfSuperCols = 0;
+  int nrOfSuperRows = 0;
+
+  core::Rect fbRect;
 };
 
 } // namespace rfb
