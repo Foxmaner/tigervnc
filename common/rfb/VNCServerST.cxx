@@ -902,7 +902,6 @@ void VNCServerST::writeUpdate()
 {
   UpdateInfo ui;
   core::Region toCheck;
-  core::Region oldVideoRegion;
 
   std::list<VNCSConnectionST*>::iterator ci;
 
@@ -934,13 +933,10 @@ void VNCServerST::writeUpdate()
 
   comparer->clear();
 
-  //Tracks new video region to old video region
-  oldVideoRegion = videoDetector.getVideoRegion();
-  videoDetector.addChanged(ui.changed);
-
-  if (videoDetector.getVideoRegion() != oldVideoRegion)
+  // Only update if videoZone changes
+  if (videoDetector.addChanged(ui.changed)){
     updateOverlay();
-
+  }
   for (ci = clients.begin(); ci != clients.end(); ++ci) {
     (*ci)->add_copied(ui.copied, ui.copy_delta);
     (*ci)->add_changed(ui.changed);

@@ -25,34 +25,34 @@
 
 namespace rfb {
 
-  class PixelBuffer;
+class PixelBuffer;
 
-  class VideoDetector {
-  public:
-    // Size in pixels of each grid cell
-    static const int GRID_WIDTH = 16;
-    static const int GRID_HEIGHT = 16;
+class VideoDetector {
+public:
+  // Size in pixels of each grid cell
+  static const int GRID_WIDTH = 16;
+  static const int GRID_HEIGHT = 16;
 
-    VideoDetector();
-    ~VideoDetector();
+  VideoDetector();
+  ~VideoDetector();
 
-    // Called when the framebuffer is set or changes size
-    void init(const PixelBuffer* pb);
+  // Called when the framebuffer is set or changes size
+  void init(const PixelBuffer *pb);
 
-    // Called with the areas of the framebuffer that have actually
-    // changed, after the comparison has removed unchanged pixels
-    void addChanged(const core::Region& changed);
+  // Called with the areas of the framebuffer that have actually
+  // changed, after the comparison has removed unchanged pixels
+  bool addChanged(const core::Region &changed);
 
-    const core::Region& getVideoRegion() const;
+  const core::Region &getVideoRegion() const;
 
-  private:
-    core::Region videoRegion;
-    struct Cell{
-      int changeCount;
-    };
-    std::vector<Cell> cells;
+private:
+  core::Region videoRegion;
+  struct Cell {
+    int changeCount;
   };
+  std::vector<Cell> cells;
+};
 
-}
+} // namespace rfb
 
 #endif

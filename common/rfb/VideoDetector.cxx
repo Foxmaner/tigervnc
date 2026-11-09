@@ -22,45 +22,41 @@
 
 #include <core/LogWriter.h>
 
-#include <rfb/VideoDetector.h>
 #include <rfb/PixelBuffer.h>
+#include <rfb/VideoDetector.h>
 
 using namespace rfb;
 
 static core::LogWriter vlog("VideoDetector");
 
-VideoDetector::VideoDetector()
-{
-  // FIXME: Placeholder zones until the detection algorithm is in place
-  videoRegion.assign_union(core::Rect(100, 100, 740, 460));
-  videoRegion.assign_union(core::Rect(900, 200, 1220, 380));
-  videoRegion.assign_union(core::Rect(300, 600, 780, 870));
-}
+VideoDetector::VideoDetector() {}
 
-VideoDetector::~VideoDetector()
-{
-}
+VideoDetector::~VideoDetector() {}
 
-void VideoDetector::init(const PixelBuffer* pb)
-{
-  // TODO: Reset state for the new framebuffer
+void VideoDetector::init(const PixelBuffer *pb) {
+  // Reset the state after a new framebuffer
   videoRegion.clear();
   cells.clear();
   int nrOfCols = (pb->width() + GRID_WIDTH - 1) / GRID_WIDTH;
   int nrOfRows = (pb->height() + GRID_HEIGHT - 1) / GRID_HEIGHT;
 
-  cells.assign(nrOfCols*nrOfRows, Cell());
-  vlog.error("VIDEO nrOfCells: %zu",cells.size());
+  cells.assign(nrOfCols * nrOfRows, Cell());
+  vlog.debug("VIDEO nrOfCells: %zu", cells.size());
 }
 
-void VideoDetector::addChanged(const core::Region& changed)
-{
-  // TODO: Update videoRegion based on the changed areas
-  //videoRegion.assign_union(changed);
-  (void)changed;
+// Returns true if the region has changed
+bool VideoDetector::addChanged(const core::Region &changed) {
+
+  core::Region oldVideoRegion = videoRegion;
+  videoRegion = changed;
+
+  if (oldVideoRegion != videoRegion) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
-const core::Region& VideoDetector::getVideoRegion() const
-{
+const core::Region &VideoDetector::getVideoRegion() const {
   return videoRegion;
 }
