@@ -141,11 +141,31 @@ bool VideoDetector::addChanged(const core::Region &changed) {
     }
   }
 
+  // Stores all the rects including the split ones, for the video debugger overlay.
+  cellRects.clear();
+  for (const SuperCell &cell : superCells) {
+    collectCellRects(cell);
+  }
+
   oldVideoRegion = videoRegion;
   videoRegion = region.intersect(fbRect);
 
   // Return if the video region has changed
   return videoRegion != oldVideoRegion;
+}
+
+//Recursively collects all rects, both supercell and split cell.
+void VideoDetector::collectCellRects(const Cell &cell) {
+  if (cell.children != nullptr) {
+    for (int i = 0; i < 4; i++)
+      collectCellRects(cell.children[i]);
+    return;
+  }
+
+  // Cells on the right and bottom can stick out of the framebuffer
+  core::Rect r = cell.rect.intersect(fbRect);
+  if (!r.is_empty())
+    cellRects.push_back(r);
 }
 
 bool VideoDetector::isEdgeCell(const SuperCell &cell) const {
@@ -209,4 +229,8 @@ unsigned VideoDetector::countChangedBuckets(const Cell &cell) const {
 
 const core::Region &VideoDetector::getVideoRegion() const {
   return videoRegion;
+}
+
+const std::vector<core::Rect> &VideoDetector::getCellRects() const {
+  return cellRects;
 }

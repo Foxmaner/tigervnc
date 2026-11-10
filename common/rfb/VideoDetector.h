@@ -22,6 +22,7 @@
 #include "core/Rect.h"
 #include <core/Region.h>
 #include <cstdint>
+#include <memory>
 #include <sys/time.h>
 #include <vector>
 
@@ -62,8 +63,13 @@ public:
 
   const core::Region &getVideoRegion() const;
 
+  // The smallest cells currently in use, including the split ones. The
+  // video debugger overlay draws these as its grid.
+  const std::vector<core::Rect> &getCellRects() const;
+
 private:
   core::Region videoRegion;
+  std::vector<core::Rect> cellRects;
 
   struct Cell {
     core::Rect rect;
@@ -71,6 +77,8 @@ private:
                                     // buckets, 1 = changed, 0 = unchanged
     unsigned lastBucket = 0; // The last bucket index when the cell was updated
     bool active = false;     // True if cell is concidered to be video
+    std::unique_ptr<Cell[]>
+        children; // Child cells in the quadtree, nullptr if no children
   };
 
   // A cell in the top level grid, with the indexes of its eight
@@ -87,6 +95,10 @@ private:
   core::Rect fbRect;
 
   timeval startTime; // Time when VideoDetector was initialized
+
+  // Adds the rects of the smallest cells (the leaves) in the cell's
+  // quadtree to cellRects
+  void collectCellRects(const Cell &cell);
 
   bool isEdgeCell(const SuperCell &cell)
       const; // Returns true if the cell is on the edge of the video zone.

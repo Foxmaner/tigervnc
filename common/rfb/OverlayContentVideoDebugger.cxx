@@ -31,12 +31,14 @@ static const int measurementInterval = 100;
 
 static unsigned measurementCount = 0;
 
-OverlayContentVideoDebugger::OverlayContentVideoDebugger(const std::string& groundTruth, const core::Region& detectedZones,int width, int height)
+OverlayContentVideoDebugger::OverlayContentVideoDebugger(
+    const std::string& groundTruth, const core::Region& detectedZones,
+    const std::vector<core::Rect>& cellRects, int width, int height)
     : _buffer(nullptr), _groundTruth(parseZones(groundTruth)),
       _detectedZones(detectedZones), _screen(0, 0, width, height),
       _measurementTimer(this) {
   _width = _height = 0;
-  _buffer = generateVideoDebugBuffer(_groundTruth, detectedZones,
+  _buffer = generateVideoDebugBuffer(_groundTruth, detectedZones, cellRects,
                                      width, height, &_width, &_height);
   _measurementTimer.start(measurementInterval);
 }
@@ -93,19 +95,25 @@ core::Region OverlayContentVideoDebugger::parseZones(const std::string& zones) {
   return region;
 }
 
-// Draws 1px lines along the VideoDetector grid cell boundaries
-static void drawGrid(pixman_image_t* destImage, int width, int height,
+// Draws 1px lines along the boundaries of the VideoDetector cells,
+// including the split ones. Only the top and left side of each cell is
+// drawn.
+static void drawGrid(pixman_image_t* destImage,
+                     const std::vector<core::Rect>& cellRects,
                      const pixman_color_t& color) {
   std::vector<pixman_rectangle16_t> lines;
 
-  for (int x = VideoDetector::GRID_SIZE_MAX; x < width;
-       x += VideoDetector::GRID_SIZE_MAX)
-    lines.push_back({static_cast<int16_t>(x), 0, 1,
-                     static_cast<uint16_t>(height)});
-  for (int y = VideoDetector::GRID_SIZE_MAX; y < height;
-       y += VideoDetector::GRID_SIZE_MAX)
-    lines.push_back({0, static_cast<int16_t>(y),
-                     static_cast<uint16_t>(width), 1});
+  for (const core::Rect& r : cellRects) {
+    // Nothing to separate along the top and left edge of the screen
+    if (r.tl.y > 0)
+      lines.push_back({static_cast<int16_t>(r.tl.x),
+                       static_cast<int16_t>(r.tl.y),
+                       static_cast<uint16_t>(r.width()), 1});
+    if (r.tl.x > 0)
+      lines.push_back({static_cast<int16_t>(r.tl.x),
+                       static_cast<int16_t>(r.tl.y), 1,
+                       static_cast<uint16_t>(r.height())});
+  }
 
   if (lines.empty())
     return;
@@ -160,7 +168,8 @@ static void drawZones(pixman_image_t* destImage, const core::Region& zones,
 // covering the entire framebuffer.
 uint8_t* OverlayContentVideoDebugger::generateVideoDebugBuffer(
     const core::Region& groundTruth, const core::Region& detectedZones,
-    int width, int height, int* outWidth, int* outHeight) {
+    const std::vector<core::Rect>& cellRects, int width, int height,
+    int* outWidth, int* outHeight) {
   *outWidth = *outHeight = 0;
 
   if ((width <= 0) || (height <= 0))
@@ -192,7 +201,7 @@ uint8_t* OverlayContentVideoDebugger::generateVideoDebugBuffer(
              detected.numRects(), truth.numRects());
 
   // The grid is drawn first so the zones are drawn on top of it
-  drawGrid(destImage, width, height, gridColor);
+  drawGrid(destImage, cellRects, gridColor);
 
   // Ground truth is drawn last so it stays visible where the zones overlap
   drawZones(destImage, detected, &detectedFillColor, detectedBorderColor);

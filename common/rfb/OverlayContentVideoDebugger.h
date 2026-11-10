@@ -7,6 +7,7 @@
 #define __RFB_OVERLAY_CONTENT_VIDEO_DEBUGGER_H__
 
 #include <string>
+#include <vector>
 
 #include <core/Region.h>
 #include <core/Timer.h>
@@ -19,8 +20,9 @@ class OverlayContentVideoDebugger : public OverlayContent,
                                     public core::Timer::Callback {
 public:
   OverlayContentVideoDebugger(const std::string& groundTruth,
-                              const core::Region& detectedZones, int width,
-                              int height);
+                              const core::Region& detectedZones,
+                              const std::vector<core::Rect>& cellRects,
+                              int width, int height);
   virtual ~OverlayContentVideoDebugger();
 
   virtual uint8_t* getContentPixelBuffer() override { return _buffer; }
@@ -31,10 +33,11 @@ private:
   // e.g. "10x10:20x20,30x30:40x40". Invalid entries are disregarded.
   static core::Region parseZones(const std::string& zones);
 
-  // Draws the detected and ground truth video zones into a freshly allocated,
-  // framebuffer sized ARGB32 buffer.
+  // Draws the detector's cells, and the detected and ground truth video
+  // zones into a freshly allocated, framebuffer sized ARGB32 buffer.
   static uint8_t* generateVideoDebugBuffer(const core::Region& groundTruth,
                                            const core::Region& detectedZones,
+                                           const std::vector<core::Rect>& cellRects,
                                            int width, int height,
                                            int* outWidth, int* outHeight);
 

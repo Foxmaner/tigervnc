@@ -195,7 +195,8 @@ void OverlayPixelBuffer::renderOverlay() {
     _content = new OverlayContentQr(_overlayInput, targetHeight);
   else if (_overlayType == "video_debugger")
     _content = new OverlayContentVideoDebugger(
-        _overlayInput, _videoDetector->getVideoRegion(), width(), height());
+        _overlayInput, _videoDetector->getVideoRegion(),
+        _videoDetector->getCellRects(), width(), height());
   else
     _content =
         new OverlayContentText(_overlayInput, targetHeight, _overlayFont);
