@@ -134,6 +134,7 @@ bool VideoDetector::addChanged(const core::Region &changed) {
       */
   }
 
+  //For debugging, only include edge cells in the video region
   for (const SuperCell &cell : superCells) {
     if (cell.active && isEdgeCell(cell)) {
       region.assign_union(cell.rect);
@@ -155,6 +156,26 @@ bool VideoDetector::isEdgeCell(const SuperCell &cell) const {
     }
   }
   return false;
+}
+
+//TODO: Implement the algoritm
+core::Rect VideoDetector::findLargestVideoArea() const {
+  core::Rect largest;
+  int activeArea = 0; // Total number of active cells
+  int largestArea = 0; // Largest rectangle of connected active cells
+  //Avoid unused variable warning
+  (void)largestArea;
+  (void)activeArea;
+
+  //set activeArea to number of active cells
+  for (const SuperCell &cell : superCells) {
+    if (cell.active) {
+      activeArea++;
+    }else{
+      continue;
+    }
+  }
+  return largest;
 }
 
 unsigned VideoDetector::currentBucket() const {

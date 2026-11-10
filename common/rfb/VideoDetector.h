@@ -91,6 +91,9 @@ private:
   bool isEdgeCell(const SuperCell &cell)
       const; // Returns true if the cell is on the edge of the video zone.
 
+  // Returns the largest bounding box of connected active cells.
+  core::Rect findLargestVideoArea() const;
+
   unsigned currentBucket() const; // Returns the current bucket index based on
                                   // the elapsed time since startTime
   void ageCell(
