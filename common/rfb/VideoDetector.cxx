@@ -30,6 +30,10 @@
 
 using namespace rfb;
 
+static const int neighborOffsets[8][2] = {
+    {-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1},
+};
+
 static core::LogWriter vlog("VideoDetector");
 
 VideoDetector::VideoDetector() {}
@@ -39,13 +43,13 @@ VideoDetector::~VideoDetector() {}
 void VideoDetector::init(const PixelBuffer *pb) {
   // Reset the state after a new framebuffer
   videoRegion.clear();
-  cells.clear();
+  superCells.clear();
   fbRect = pb->getRect();
   gettimeofday(&startTime, nullptr);
   nrOfSuperCols = (pb->width() + GRID_SIZE_MAX - 1) / GRID_SIZE_MAX;
   nrOfSuperRows = (pb->height() + GRID_SIZE_MAX - 1) / GRID_SIZE_MAX;
 
-  cells.resize(nrOfSuperCols * nrOfSuperRows);
+  superCells.resize(nrOfSuperCols * nrOfSuperRows);
 
   // Assign each cell to a rectangle in the framebuffer
   for (int row = 0; row < nrOfSuperRows; row++) {
@@ -55,10 +59,24 @@ void VideoDetector::init(const PixelBuffer *pb) {
       int x2 = x1 + GRID_SIZE_MAX;
       int y2 = y1 + GRID_SIZE_MAX;
 
-      cells[row * nrOfSuperCols + col].rect = core::Rect(x1, y1, x2, y2);
+      superCells[row * nrOfSuperCols + col].rect = core::Rect(x1, y1, x2, y2);
+
+      // Asign neighbor supercells to each supercell
+      for (int i = 0; i < 8; i++) {
+        int neighborCol = col + neighborOffsets[i][0];
+        int neighborRow = row + neighborOffsets[i][1];
+        if (neighborCol < 0 || neighborCol >= nrOfSuperCols ||
+            neighborRow < 0 || neighborRow >= nrOfSuperRows) {
+          superCells[row * nrOfSuperCols + col].neighborSuperCells[i] =
+              -1; // No neighbor
+        } else {
+          superCells[row * nrOfSuperCols + col].neighborSuperCells[i] =
+              neighborRow * nrOfSuperCols + neighborCol;
+        }
+      }
     }
   }
-  vlog.debug("nrOfCells: %zu", cells.size());
+  vlog.debug("nrOfCells: %zu", superCells.size());
 }
 
 // Returns true if the region has changed
@@ -68,12 +86,12 @@ bool VideoDetector::addChanged(const core::Region &changed) {
   core::Region oldVideoRegion;
 
   // If framebuffer is empty, return false.
-  if (cells.empty())
+  if (superCells.empty())
     return false;
 
   unsigned now = currentBucket();
-  //Age each cell each pass
-  for (Cell &cell : cells) {
+  // Age each cell each pass
+  for (SuperCell &cell : superCells) {
     ageCell(cell, now);
   }
 
@@ -91,24 +109,33 @@ bool VideoDetector::addChanged(const core::Region &changed) {
     int intersectRowEnd =
         std::min((r.br.y - 1) / GRID_SIZE_MAX, nrOfSuperRows - 1);
 
-    //Mark cells intersecting with damage as video by setting the current bucket to 1    
+    // Mark cells intersecting with damage as video by setting the current
+    // bucket to 1
     for (int row = intersectRowStart; row <= intersectRowEnd; row++) {
       for (int col = intersectColStart; col <= intersectColEnd; col++) {
-        Cell &cell = cells[row * nrOfSuperCols + col];
+        SuperCell &cell = superCells[row * nrOfSuperCols + col];
         cell.historicalBuckets = cell.historicalBuckets | 1;
       }
     }
   }
 
-  //Determine which cells have had enough damage to be concidered video
-  for (Cell &cell : cells) {
+  // Determine which cells have had enough damage to be concidered video
+  for (SuperCell &cell : superCells) {
     unsigned changedBuckets = countChangedBuckets(cell);
     if (changedBuckets >= MIN_THRESHOLD_BUCKET_RATIO * HISTORY_BUCKETS) {
       cell.active = true;
     } else {
       cell.active = false;
     }
+    /*
     if (cell.active) {
+      region.assign_union(cell.rect);
+    }
+      */
+  }
+
+  for (const SuperCell &cell : superCells) {
+    if (cell.active && isEdgeCell(cell)) {
       region.assign_union(cell.rect);
     }
   }
@@ -120,12 +147,23 @@ bool VideoDetector::addChanged(const core::Region &changed) {
   return videoRegion != oldVideoRegion;
 }
 
+bool VideoDetector::isEdgeCell(const SuperCell &cell) const {
+  for (int i = 0; i < 8; i++) {
+    int neighborIndex = cell.neighborSuperCells[i];
+    if (neighborIndex == -1 || !superCells[neighborIndex].active) {
+      return true;
+    }
+  }
+  return false;
+}
+
 unsigned VideoDetector::currentBucket() const {
   return core::msSince(&startTime) / BUCKET_MS;
 }
 
 void VideoDetector::ageCell(Cell &cell, unsigned now) {
-  //Age cell by shifting historicalbuckets to the left by the number of passed buckets since last call.
+  // Age cell by shifting historicalbuckets to the left by the number of passed
+  // buckets since last call.
   unsigned passed = now - cell.lastBucket;
 
   if (passed >= HISTORY_BUCKETS)
@@ -137,7 +175,7 @@ void VideoDetector::ageCell(Cell &cell, unsigned now) {
 }
 
 unsigned VideoDetector::countChangedBuckets(const Cell &cell) const {
-  //Counts the number of 1:s in the historicalBuckets bitfield
+  // Counts the number of 1:s in the historicalBuckets bitfield
   unsigned count = 0;
 
   for (unsigned i = 0; i < HISTORY_BUCKETS; i++) {

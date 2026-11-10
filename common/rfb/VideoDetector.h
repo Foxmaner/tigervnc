@@ -31,17 +31,23 @@ class PixelBuffer;
 
 class VideoDetector {
 public:
-  //Setting variables to tune
+  // Setting variables to tune
   //_________________________
-  // Min/Max size of the grid cells in the quadtree.
-  static const int GRID_SIZE_MAX = 128;
+  //  Min/Max size of the grid cells in the quadtree.
+  static const int GRID_SIZE_MAX = 16;
   static const int GRID_SIZE_MIN = 8;
 
-  static const unsigned BUCKET_MS = 100; // Milliseconds per bucket in the history
-  static const unsigned HISTORY_BUCKETS = 50; // Number of buckets in the history (Maximun 64!!!)
-  static const unsigned HISTORY_MS = BUCKET_MS * HISTORY_BUCKETS; // Total history time
-  static constexpr double MIN_THRESHOLD_BUCKET_RATIO = 0.5; // Minimum number of changed buckets to be considered video
-  static constexpr double MIN_VIDEO_REGION_RATIO = 0.25; // Minimum ratio of video region to framebuffer area to be considered video
+  static const unsigned BUCKET_MS =
+      100; // Milliseconds per bucket in the history
+  static const unsigned HISTORY_BUCKETS =
+      50; // Number of buckets in the history (Maximun 64!!!)
+  static const unsigned HISTORY_MS =
+      BUCKET_MS * HISTORY_BUCKETS; // Total history time
+  static constexpr double MIN_THRESHOLD_BUCKET_RATIO =
+      0.5; // Minimum number of changed buckets to be considered video
+  static constexpr double MIN_VIDEO_REGION_RATIO =
+      0.25; // Minimum ratio of video region to framebuffer area to be
+            // considered video
   //_________________________
 
   VideoDetector();
@@ -61,12 +67,19 @@ private:
 
   struct Cell {
     core::Rect rect;
-    uint64_t historicalBuckets = 0; // Bitfield of the last HISTORY_BUCKETS buckets, 1 = changed, 0 = unchanged
+    uint64_t historicalBuckets = 0; // Bitfield of the last HISTORY_BUCKETS
+                                    // buckets, 1 = changed, 0 = unchanged
     unsigned lastBucket = 0; // The last bucket index when the cell was updated
-    bool active = false; // True if cell is concidered to be video
+    bool active = false;     // True if cell is concidered to be video
   };
 
-  std::vector<Cell> cells;
+  // A cell in the top level grid, with the indexes of its eight
+  // neighboring supercells. If neighbor is outside the frame, the index is -1.
+  struct SuperCell : Cell {
+    int neighborSuperCells[8];
+  };
+
+  std::vector<SuperCell> superCells;
 
   int nrOfSuperCols = 0;
   int nrOfSuperRows = 0;
@@ -75,9 +88,17 @@ private:
 
   timeval startTime; // Time when VideoDetector was initialized
 
-  unsigned currentBucket() const; // Returns the current bucket index based on the elapsed time since startTime
-  void ageCell(Cell &cell, unsigned now); //Ages the cells historicalBuckets to the current bucket.
-  unsigned countChangedBuckets(const Cell &cell) const; // Counts the number of changed buckets in the cell's historicalBuckets
+  bool isEdgeCell(const SuperCell &cell)
+      const; // Returns true if the cell is on the edge of the video zone.
+
+  unsigned currentBucket() const; // Returns the current bucket index based on
+                                  // the elapsed time since startTime
+  void ageCell(
+      Cell &cell,
+      unsigned now); // Ages the cells historicalBuckets to the current bucket.
+  unsigned countChangedBuckets(
+      const Cell &cell) const; // Counts the number of changed buckets in the
+                               // cell's historicalBuckets
 };
 
 } // namespace rfb
