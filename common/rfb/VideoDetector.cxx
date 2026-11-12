@@ -280,30 +280,25 @@ void VideoDetector::collectActiveCells(const Cell &cell, core::Region &region) {
 
 void VideoDetector::refineCell(Cell &cell) {
 
-  if (cell.rect.width() > GRID_SIZE_MIN) {
-    if (cell.active) {
-      splitCell(cell);
+  if (cell.children != nullptr) {
+    for (int i = 0; i < 4; i++)
+      refineCell(cell.children[i]);
+
+    bool anyActive = false;
+    bool anyChildSplit = false;
+    for (int i = 0; i < 4; i++) {
+      if (cell.children[i].active)
+        anyActive = true;
+      if (cell.children[i].children != nullptr)
+        anyChildSplit = true;
     }
-  } else {
-    if (!cell.active && cell.children != nullptr) {
-      bool hasActiveChildren = false;
-      for (int i = 0; i < 4; i++) {
-        if (cell.children[i].active) {
-          hasActiveChildren = true;
-          break;
-        }
-      }
-      if (!hasActiveChildren) {
-        cell.children.reset(); // Merge back to parent
-      }
-    }
+    if (!anyActive && !anyChildSplit)
+      cell.children.reset(); //Nothing active, merge back to parent
+    return;
   }
 
-  if (cell.children != nullptr) {
-    for (int i = 0; i < 4; i++) {
-      refineCell(cell.children[i]);
-    }
-  }
+  if (cell.active && cell.rect.width() > GRID_SIZE_MIN)
+    splitCell(cell);
 }
 
 unsigned VideoDetector::countChangedBuckets(const Cell &cell) const {
