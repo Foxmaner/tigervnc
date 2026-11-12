@@ -114,19 +114,14 @@ bool VideoDetector::addChanged(const core::Region &changed) {
     for (int row = intersectRowStart; row <= intersectRowEnd; row++) {
       for (int col = intersectColStart; col <= intersectColEnd; col++) {
         SuperCell &cell = superCells[row * nrOfSuperCols + col];
-        cell.historicalBuckets = cell.historicalBuckets | 1;
+        markChangedCell(cell, r);
       }
     }
   }
 
   // Determine which cells have had enough damage to be concidered video
   for (SuperCell &cell : superCells) {
-    unsigned changedBuckets = countChangedBuckets(cell);
-    if (changedBuckets >= MIN_THRESHOLD_BUCKET_RATIO * HISTORY_BUCKETS) {
-      cell.active = true;
-    } else {
-      cell.active = false;
-    }
+    checkActiveCell(cell);
     /*
     if (cell.active) {
       region.assign_union(cell.rect);
@@ -213,6 +208,39 @@ void VideoDetector::ageCell(Cell &cell, unsigned now) {
     cell.historicalBuckets = cell.historicalBuckets << passed;
 
   cell.lastBucket = now;
+
+  if(cell.children != nullptr){
+    for(int i = 0; i < 4; i++){
+      ageCell(cell.children[i], now);
+    }
+  }
+}
+
+void VideoDetector::markChangedCell(Cell &cell, const core::Rect &r) {
+  // Mark cell as changed by setting the current bucket to 1
+  if(cell.rect.intersect(r).is_empty()){
+    return;
+  }
+  cell.historicalBuckets = cell.historicalBuckets | 1;
+  if(cell.children != nullptr){
+    for(int i = 0; i < 4; i++){
+      markChangedCell(cell.children[i], r);
+    }
+  }
+}
+
+void VideoDetector::checkActiveCell(Cell &cell) {
+  unsigned changedBuckets = countChangedBuckets(cell);
+  if (changedBuckets >= MIN_THRESHOLD_BUCKET_RATIO * HISTORY_BUCKETS) {
+    cell.active = true;
+  } else {
+    cell.active = false;
+  }
+  if(cell.children != nullptr){
+    for(int i = 0; i < 4; i++){
+      checkActiveCell(cell.children[i]);
+    }
+  }
 }
 
 unsigned VideoDetector::countChangedBuckets(const Cell &cell) const {

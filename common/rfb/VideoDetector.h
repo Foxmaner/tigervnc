@@ -35,7 +35,7 @@ public:
   // Setting variables to tune
   //_________________________
   //  Min/Max size of the grid cells in the quadtree.
-  static const int GRID_SIZE_MAX = 16;
+  static const int GRID_SIZE_MAX = 128;
   static const int GRID_SIZE_MIN = 8;
 
   static const unsigned BUCKET_MS =
@@ -111,6 +111,15 @@ private:
   void ageCell(
       Cell &cell,
       unsigned now); // Ages the cells historicalBuckets to the current bucket.
+  // Recursivly marks the cell if it intersects with damaged region.
+  void markChangedCell(
+      Cell &cell,
+      const core::Rect &r); // Marks the cell as changed in the current bucket
+  // Recursivly checks if the cell and its childrens is active based on its
+  // historicalBuckets
+  void checkActiveCell(
+      Cell &cell); // Checks if the cell is active based on its
+                   // historicalBuckets and updates its active status
   unsigned countChangedBuckets(
       const Cell &cell) const; // Counts the number of changed buckets in the
                                // cell's historicalBuckets
