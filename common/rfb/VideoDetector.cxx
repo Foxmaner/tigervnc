@@ -122,6 +122,7 @@ bool VideoDetector::addChanged(const core::Region &changed) {
   // Determine which cells have had enough damage to be concidered video
   for (SuperCell &cell : superCells) {
     checkActiveCell(cell);
+    refineCell(cell);
     /*
     if (cell.active) {
       region.assign_union(cell.rect);
@@ -241,6 +242,23 @@ void VideoDetector::checkActiveCell(Cell &cell) {
       checkActiveCell(cell.children[i]);
     }
   }
+}
+
+void VideoDetector::splitCell(Cell &cell) {
+  if(cell.children != nullptr){
+    return; // Already split
+  }
+  cell.children.reset(new Cell[4]);
+  int midX = (cell.rect.tl.x + cell.rect.br.x) / 2;
+  int midY = (cell.rect.tl.y + cell.rect.br.y) / 2;
+  cell.children[0].rect = core::Rect(cell.rect.tl.x, cell.rect.tl.y, midX, midY);
+  cell.children[1].rect = core::Rect(midX, cell.rect.tl.y, cell.rect.br.x, midY);
+  cell.children[2].rect = core::Rect(cell.rect.tl.x, midY, midX, cell.rect.br.y);
+  cell.children[3].rect = core::Rect(midX, midY, cell.rect.br.x, cell.rect.br.y);
+}
+
+void VideoDetector::refineCell(Cell &cell) {
+  (void)cell;
 }
 
 unsigned VideoDetector::countChangedBuckets(const Cell &cell) const {

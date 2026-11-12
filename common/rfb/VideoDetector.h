@@ -118,8 +118,11 @@ private:
   // Recursivly checks if the cell and its childrens is active based on its
   // historicalBuckets
   void checkActiveCell(
-      Cell &cell); // Checks if the cell is active based on its
-                   // historicalBuckets and updates its active status
+      Cell &cell);            // Checks if the cell is active based on its
+                              // historicalBuckets and updates its active status
+  void splitCell(Cell &cell); // Splits the cell into four children
+  void refineCell(
+      Cell &cell); // Decides if the cell should split, merge, or stay the same
   unsigned countChangedBuckets(
       const Cell &cell) const; // Counts the number of changed buckets in the
                                // cell's historicalBuckets
