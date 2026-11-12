@@ -131,7 +131,7 @@ bool VideoDetector::addChanged(const core::Region &changed) {
 
   // For debugging, only include edge cells in the video region
   for (const SuperCell &cell : superCells) {
-    if (cell.active && isEdgeCell(cell)) {
+    if (cell.active) {
       collectActiveCells(cell, region);
     }
   }
