@@ -122,22 +122,22 @@ bool VideoDetector::addChanged(const core::Region &changed) {
   // Determine which cells have had enough damage to be concidered video
   for (SuperCell &cell : superCells) {
     checkActiveCell(cell);
-    refineCell(cell);
-    /*
-    if (cell.active) {
-      region.assign_union(cell.rect);
+    if (isEdgeCell(cell)) {
+      refineCell(cell);
+    } else {
+      cell.children.reset(); // Merge back to parent if not edge cell
     }
-      */
   }
 
-  //For debugging, only include edge cells in the video region
+  // For debugging, only include edge cells in the video region
   for (const SuperCell &cell : superCells) {
     if (cell.active && isEdgeCell(cell)) {
-      region.assign_union(cell.rect);
+      collectActiveCells(cell, region);
     }
   }
 
-  // Stores all the rects including the split ones, for the video debugger overlay.
+  // Stores all the rects including the split ones, for the video debugger
+  // overlay.
   cellRects.clear();
   for (const SuperCell &cell : superCells) {
     collectCellRects(cell);
@@ -150,7 +150,7 @@ bool VideoDetector::addChanged(const core::Region &changed) {
   return videoRegion != oldVideoRegion;
 }
 
-//Recursively collects all rects, both supercell and split cell.
+// Recursively collects all rects, both supercell and split cell.
 void VideoDetector::collectCellRects(const Cell &cell) {
   if (cell.children != nullptr) {
     for (int i = 0; i < 4; i++)
@@ -174,20 +174,20 @@ bool VideoDetector::isEdgeCell(const SuperCell &cell) const {
   return false;
 }
 
-//TODO: Implement the algoritm
+// TODO: Implement the algoritm
 core::Rect VideoDetector::findLargestVideoArea() const {
   core::Rect largest;
-  int activeArea = 0; // Total number of active cells
+  int activeArea = 0;  // Total number of active cells
   int largestArea = 0; // Largest rectangle of connected active cells
-  //Avoid unused variable warning
+  // Avoid unused variable warning
   (void)largestArea;
   (void)activeArea;
 
-  //set activeArea to number of active cells
+  // set activeArea to number of active cells
   for (const SuperCell &cell : superCells) {
     if (cell.active) {
       activeArea++;
-    }else{
+    } else {
       continue;
     }
   }
@@ -210,8 +210,8 @@ void VideoDetector::ageCell(Cell &cell, unsigned now) {
 
   cell.lastBucket = now;
 
-  if(cell.children != nullptr){
-    for(int i = 0; i < 4; i++){
+  if (cell.children != nullptr) {
+    for (int i = 0; i < 4; i++) {
       ageCell(cell.children[i], now);
     }
   }
@@ -219,12 +219,12 @@ void VideoDetector::ageCell(Cell &cell, unsigned now) {
 
 void VideoDetector::markChangedCell(Cell &cell, const core::Rect &r) {
   // Mark cell as changed by setting the current bucket to 1
-  if(cell.rect.intersect(r).is_empty()){
+  if (cell.rect.intersect(r).is_empty()) {
     return;
   }
   cell.historicalBuckets = cell.historicalBuckets | 1;
-  if(cell.children != nullptr){
-    for(int i = 0; i < 4; i++){
+  if (cell.children != nullptr) {
+    for (int i = 0; i < 4; i++) {
       markChangedCell(cell.children[i], r);
     }
   }
@@ -237,28 +237,73 @@ void VideoDetector::checkActiveCell(Cell &cell) {
   } else {
     cell.active = false;
   }
-  if(cell.children != nullptr){
-    for(int i = 0; i < 4; i++){
+  if (cell.children != nullptr) {
+    for (int i = 0; i < 4; i++) {
       checkActiveCell(cell.children[i]);
     }
   }
 }
 
 void VideoDetector::splitCell(Cell &cell) {
-  if(cell.children != nullptr){
+  if (cell.children != nullptr) {
     return; // Already split
   }
   cell.children.reset(new Cell[4]);
   int midX = (cell.rect.tl.x + cell.rect.br.x) / 2;
   int midY = (cell.rect.tl.y + cell.rect.br.y) / 2;
-  cell.children[0].rect = core::Rect(cell.rect.tl.x, cell.rect.tl.y, midX, midY);
-  cell.children[1].rect = core::Rect(midX, cell.rect.tl.y, cell.rect.br.x, midY);
-  cell.children[2].rect = core::Rect(cell.rect.tl.x, midY, midX, cell.rect.br.y);
-  cell.children[3].rect = core::Rect(midX, midY, cell.rect.br.x, cell.rect.br.y);
+  cell.children[0].rect =
+      core::Rect(cell.rect.tl.x, cell.rect.tl.y, midX, midY);
+  cell.children[1].rect =
+      core::Rect(midX, cell.rect.tl.y, cell.rect.br.x, midY);
+  cell.children[2].rect =
+      core::Rect(cell.rect.tl.x, midY, midX, cell.rect.br.y);
+  cell.children[3].rect =
+      core::Rect(midX, midY, cell.rect.br.x, cell.rect.br.y);
+
+  for (int i = 0; i < 4; i++) {
+    cell.children[i].historicalBuckets = cell.historicalBuckets;
+    cell.children[i].lastBucket = cell.lastBucket;
+    //cell.children[i].active = cell.active;
+  }
+}
+
+void VideoDetector::collectActiveCells(const Cell &cell, core::Region &region) {
+  if (cell.active && cell.children == nullptr) {
+    region.assign_union(cell.rect);
+  }
+  if (cell.children != nullptr) {
+    for (int i = 0; i < 4; i++) {
+      collectActiveCells(cell.children[i], region);
+    }
+  }
 }
 
 void VideoDetector::refineCell(Cell &cell) {
-  (void)cell;
+
+  if (cell.rect.width() > GRID_SIZE_MIN) {
+    if (cell.active) {
+      splitCell(cell);
+    }
+  } else {
+    if (!cell.active && cell.children != nullptr) {
+      bool hasActiveChildren = false;
+      for (int i = 0; i < 4; i++) {
+        if (cell.children[i].active) {
+          hasActiveChildren = true;
+          break;
+        }
+      }
+      if (!hasActiveChildren) {
+        cell.children.reset(); // Merge back to parent
+      }
+    }
+  }
+
+  if (cell.children != nullptr) {
+    for (int i = 0; i < 4; i++) {
+      refineCell(cell.children[i]);
+    }
+  }
 }
 
 unsigned VideoDetector::countChangedBuckets(const Cell &cell) const {

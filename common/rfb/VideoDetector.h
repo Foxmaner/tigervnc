@@ -121,6 +121,10 @@ private:
       Cell &cell);            // Checks if the cell is active based on its
                               // historicalBuckets and updates its active status
   void splitCell(Cell &cell); // Splits the cell into four children
+  void collectActiveCells(
+      const Cell &cell,
+      core::Region &region); // Recursively collects all active cells in the
+                             // cell's quadtree and adds them to videoRegion
   void refineCell(
       Cell &cell); // Decides if the cell should split, merge, or stay the same
   unsigned countChangedBuckets(
