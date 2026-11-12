@@ -131,7 +131,7 @@ bool VideoDetector::addChanged(const core::Region &changed) {
 
   // For debugging, only include edge cells in the video region
   for (const SuperCell &cell : superCells) {
-    if (cell.active) {
+    if (cell.active && isEdgeCell(cell)) {
       collectActiveCells(cell, region);
     }
   }
@@ -165,11 +165,15 @@ void VideoDetector::collectCellRects(const Cell &cell) {
 }
 
 bool VideoDetector::isEdgeCell(const SuperCell &cell) const {
+  int connectiveActiveNeighbors = 0;
   for (int i = 0; i < 8; i++) {
     int neighborIndex = cell.neighborSuperCells[i];
-    if (neighborIndex == -1 || !superCells[neighborIndex].active) {
-      return true;
+    if (neighborIndex != -1 && superCells[neighborIndex].active) {
+      connectiveActiveNeighbors++;
     }
+  }
+  if(connectiveActiveNeighbors == 3 || connectiveActiveNeighbors == 5) {
+    return true;
   }
   return false;
 }
