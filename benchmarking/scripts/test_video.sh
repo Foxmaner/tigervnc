@@ -21,7 +21,7 @@ VIDEO=${1:?Usage: $0 <video.webm>}
 TEST_NAME=${2:-$(basename "${VIDEO%.*}")}
 DISPLAY_NUM=${DISPLAY_NUM:-9}
 
-RESULT_DIR=$REPO_DIR/benchmarking/results/${TEST_NAME}_$(date +%Y%m%d_%H%M%S)
+RESULT_DIR=$REPO_DIR/benchmarking/results/${TEST_NAME}_$(date +%Y%m%d_%H%M%S)_detection
 mkdir -p "$RESULT_DIR"
 
 # Match the display to the video size, so it plays unscaled and the

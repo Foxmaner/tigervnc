@@ -25,7 +25,7 @@ DISPLAY_NUM=${DISPLAY_NUM:-9}
 # OverlayContentVideoDebugger.cxx
 SAMPLE_INTERVAL=0.1
 
-RESULT_DIR=$REPO_DIR/benchmarking/results/${TEST_NAME}_perf_$(date +%Y%m%d_%H%M%S)
+RESULT_DIR=$REPO_DIR/benchmarking/results/${TEST_NAME}_$(date +%Y%m%d_%H%M%S)_performance
 mkdir -p "$RESULT_DIR"
 
 # Match the display to the video size, so it plays unscaled
