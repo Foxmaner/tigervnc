@@ -19,5 +19,6 @@ compile_commands.json
 build/
 results/
 footage/
+graphs/
 .webm
 .zones
