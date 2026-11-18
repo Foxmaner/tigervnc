@@ -13,3 +13,12 @@ config.h
 cmake_install.cmake
 cmake_uninstall.cmake
 install_manifest.txt
+
+#Own gitignore
+compile_commands.json
+build/
+results/
+footage/
+graphs/
+.webm
+.zones
