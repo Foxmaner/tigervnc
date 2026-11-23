@@ -148,6 +148,14 @@ awk -F, -v out="$RESULT_DIR/success.csv" '
   echo "geometry=$GEOMETRY"
   echo "ground_truth=$GROUND_TRUTH"
   echo "commit=$(git -C "$REPO_DIR" describe --always --dirty)"
+  # The VideoDetector settings, one key=value per line, from the first
+  # "VideoDetector: Settings: key=value ..." message
+  awk '/^   +/ { sub(/^ +/, " "); printf "%s", $0; next }
+       NR > 1 { print "" }
+       { printf "%s", $0 }
+       END { print "" }' "$RESULT_DIR/Xvnc.log" |
+    grep -m1 'VideoDetector: Settings:' |
+    sed 's/.*Settings: //' | tr ' ' '\n' || true
   cat "$RESULT_DIR/scores.tmp"
 } >"$RESULT_DIR/info.txt"
 rm -f "$RESULT_DIR/scores.tmp"
