@@ -78,11 +78,13 @@ void VideoDetector::init(const PixelBuffer *pb) {
   }
   vlog.debug("nrOfCells: %zu", superCells.size());
 
- vlog.info("Settings: grid_size_max=%d grid_size_min=%d bucket_ms=%u "
+  vlog.info("Settings: grid_size_max=%d grid_size_min=%d bucket_ms=%u "
             "history_buckets=%u history_ms=%u "
-            "min_threshold_bucket_ratio=%.2f min_video_region_ratio=%.2f",
+            "min_threshold_bucket_ratio=%.2f min_keep_bucket_ratio=%.2f "
+            "min_video_region_ratio=%.2f",
             GRID_SIZE_MAX, GRID_SIZE_MIN, BUCKET_MS, HISTORY_BUCKETS,
-            HISTORY_MS, MIN_THRESHOLD_BUCKET_RATIO, MIN_VIDEO_REGION_RATIO);
+            HISTORY_MS, MIN_THRESHOLD_BUCKET_RATIO, MIN_KEEP_BUCKET_RATIO,
+            MIN_VIDEO_REGION_RATIO);
 }
 
 // Returns true if the region has changed

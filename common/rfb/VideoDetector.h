@@ -46,6 +46,9 @@ public:
       BUCKET_MS * HISTORY_BUCKETS; // Total history time
   static constexpr double MIN_THRESHOLD_BUCKET_RATIO =
       0.5; // Minimum number of changed buckets to be considered video
+  static constexpr double MIN_KEEP_BUCKET_RATIO =
+      0.3; // Minimum number of changed buckets for a cell that is already
+           // video to stay video
   static constexpr double MIN_VIDEO_REGION_RATIO =
       0.25; // Minimum ratio of video region to framebuffer area to be
             // considered video
