@@ -72,3 +72,19 @@ plt.legend()
     #Export
 plt.savefig(os.path.join(graphs_dir, "overlap_precision_recall.pdf"), bbox_inches="tight")
 plt.close()
+
+#Nr of cells count graph
+    #Create graph
+plt.figure(figsize=(10, 6))    
+plt.plot(overlap_data["sample"], overlap_data["cell_rect_count"], label="Number of cells")
+
+    #Add titles and labels
+plt.title(f"{video_name}: Number of cells")
+plt.xlabel("Sample, 10 samples = 1 second")
+plt.ylabel("Number of rectangles")
+plt.ylim(bottom=0)
+plt.grid(True)
+
+    #Export
+plt.savefig(os.path.join(graphs_dir, "cell_plot.pdf"), bbox_inches="tight")
+plt.close()
