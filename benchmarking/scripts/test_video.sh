@@ -95,12 +95,13 @@ trap - EXIT
 # --- Results -----------------------------------------------------------
 
 # One row per "OverlayContentVideoDebugger: Measurement: key=value ..."
-# message with the pixel counts tp, tn, fp and fn. The scores are derived here:
+# message with the pixel counts tp, tn, fp and fn, and the number of
+# detector cells (cell_rect_count). The scores are derived here:
 # overlap (IoU) = tp/(tp+fp+fn), precision = tp/(tp+fp), recall = tp/(tp+fn)
 #
 # Log messages that span several lines have their continuation lines
 # indented, so those are first joined onto the line they belong to
-echo "sample,overlap,precision,recall,tp,tn,fp,fn" >"$RESULT_DIR/overlap.csv"
+echo "sample,overlap,precision,recall,tp,tn,fp,fn,cell_rect_count" >"$RESULT_DIR/overlap.csv"
 awk '/^   +/ { sub(/^ +/, " "); printf "%s", $0; next }
      NR > 1 { print "" }
      { printf "%s", $0 }
@@ -116,9 +117,9 @@ awk '/^   +/ { sub(/^ +/, " "); printf "%s", $0; next }
       tp = v["tp"] + 0; tn = v["tn"] + 0; fp = v["fp"] + 0; fn = v["fn"] + 0
       # Nothing detected where there is nothing to detect is a perfect
       # match, but detecting nothing at all gives no precision
-      printf "%d,%.4f,%.4f,%.4f,%d,%d,%d,%d\n", v["sample"],
+      printf "%d,%.4f,%.4f,%.4f,%d,%d,%d,%d,%d\n", v["sample"],
              ratio(tp, tp + fp + fn, 1), ratio(tp, tp + fp, 0),
-             ratio(tp, tp + fn, 1), tp, tn, fp, fn
+             ratio(tp, tp + fn, 1), tp, tn, fp, fn, v["cell_rect_count"]
     }' >>"$RESULT_DIR/overlap.csv" || true
 
 # Share of samples with an overlap of at least each threshold, and the

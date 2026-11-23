@@ -48,6 +48,7 @@ private:
   uint8_t* _buffer;
   core::Region _groundTruth;
   const core::Region& _detectedZones;
+  const std::vector<core::Rect>& _cellRects;
   core::Rect _screen;
   core::Timer _measurementTimer;
 };

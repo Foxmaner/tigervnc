@@ -35,8 +35,8 @@ OverlayContentVideoDebugger::OverlayContentVideoDebugger(
     const std::string& groundTruth, const core::Region& detectedZones,
     const std::vector<core::Rect>& cellRects, int width, int height)
     : _buffer(nullptr), _groundTruth(parseZones(groundTruth)),
-      _detectedZones(detectedZones), _screen(0, 0, width, height),
-      _measurementTimer(this) {
+      _detectedZones(detectedZones), _cellRects(cellRects),
+      _screen(0, 0, width, height), _measurementTimer(this) {
   _width = _height = 0;
   _buffer = generateVideoDebugBuffer(_groundTruth, detectedZones, cellRects,
                                      width, height, &_width, &_height);
@@ -65,8 +65,8 @@ void OverlayContentVideoDebugger::handleTimeout(core::Timer* /*t*/) {
   unsigned long long fn = regionArea(truth) - tp;
   unsigned long long tn = _screen.area() - tp - fp - fn;
 
-  vlog.info("Measurement: sample=%u tp=%llu tn=%llu fp=%llu fn=%llu",
-            ++measurementCount, tp, tn, fp, fn);
+  vlog.info("Measurement: sample=%u tp=%llu tn=%llu fp=%llu fn=%llu cell_rect_count=%zu",
+            ++measurementCount, tp, tn, fp, fn, _cellRects.size());
 
   _measurementTimer.repeat();
 }
