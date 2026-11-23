@@ -11,8 +11,11 @@
 #include <cstdio>
 #include <vector>
 
+#include <sys/time.h>
+
 #include <core/LogWriter.h>
 #include <core/string.h>
+#include <core/time.h>
 
 #include <rfb/OverlayContentVideoDebugger.h>
 #include <rfb/VideoDetector.h>
@@ -31,6 +34,10 @@ static const int measurementInterval = 100;
 
 static unsigned measurementCount = 0;
 
+// Shared by all instances as its otherwise lost between overlay refreshes.
+static bool measuredBefore = false;
+static struct timeval lastMeasurement;
+
 OverlayContentVideoDebugger::OverlayContentVideoDebugger(
     const std::string& groundTruth, const core::Region& detectedZones,
     const std::vector<core::Rect>& cellRects, int width, int height)
@@ -40,7 +47,17 @@ OverlayContentVideoDebugger::OverlayContentVideoDebugger(
   _width = _height = 0;
   _buffer = generateVideoDebugBuffer(_groundTruth, detectedZones, cellRects,
                                      width, height, &_width, &_height);
-  _measurementTimer.start(measurementInterval);
+
+  // Continue the interval of the previous instance, measuring right away
+  // if it is already due
+  unsigned elapsed = measuredBefore ? core::msSince(&lastMeasurement)
+                                    : measurementInterval;
+  if (elapsed >= measurementInterval) {
+    measure();
+    _measurementTimer.start(measurementInterval);
+  } else {
+    _measurementTimer.start(measurementInterval - elapsed);
+  }
 }
 
 OverlayContentVideoDebugger::~OverlayContentVideoDebugger() { delete[] _buffer; }
@@ -57,6 +74,11 @@ static unsigned long long regionArea(const core::Region& region) {
 }
 
 void OverlayContentVideoDebugger::handleTimeout(core::Timer* /*t*/) {
+  measure();
+  _measurementTimer.repeat();
+}
+
+void OverlayContentVideoDebugger::measure() {
   core::Region detected = _detectedZones.intersect(_screen);
   core::Region truth = _groundTruth.intersect(_screen);
 
@@ -68,7 +90,8 @@ void OverlayContentVideoDebugger::handleTimeout(core::Timer* /*t*/) {
   vlog.info("Measurement: sample=%u tp=%llu tn=%llu fp=%llu fn=%llu cell_rect_count=%zu",
             ++measurementCount, tp, tn, fp, fn, _cellRects.size());
 
-  _measurementTimer.repeat();
+  gettimeofday(&lastMeasurement, nullptr);
+  measuredBefore = true;
 }
 
 //Parse the zones from overlayInput string

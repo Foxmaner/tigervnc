@@ -41,9 +41,12 @@ private:
                                            int width, int height,
                                            int* outWidth, int* outHeight);
 
-  // Logs the pixel counts of true/false positives/negatives of the
-  // detected zones against the ground truth, ten times per second
+  // Calls measure() ten times per second
   void handleTimeout(core::Timer* t) override;
+
+  // Logs the pixel counts of true/false positives/negatives of the
+  // detected zones against the ground truth, and the number of cells
+  void measure();
 
   uint8_t* _buffer;
   core::Region _groundTruth;
