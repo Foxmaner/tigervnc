@@ -16,6 +16,7 @@
  * USA.
  */
 
+#include "core/Rect.h"
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -233,6 +234,10 @@ core::Rect VideoDetector::findLargestVideoArea() const {
       largestArea = area;
       largest = bounds;
     }
+  }
+
+  if(largestArea < MIN_VIDEO_REGION_RATIO * fbRect.area()){
+    return core::Rect();
   }
 
   return largest.intersect(fbRect);
