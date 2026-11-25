@@ -90,7 +90,6 @@ void VideoDetector::init(const PixelBuffer *pb) {
 // Returns true if the region has changed
 bool VideoDetector::addChanged(const core::Region &changed) {
   std::vector<core::Rect> rects;
-  core::Region region;
   core::Region oldVideoRegion;
 
   // If framebuffer is empty, return false.
@@ -137,13 +136,6 @@ bool VideoDetector::addChanged(const core::Region &changed) {
     }
   }
 
-  // For debugging, only include edge cells in the video region
-  for (const SuperCell &cell : superCells) {
-    if (cell.active) {
-      collectActiveCells(cell, region);
-    }
-  }
-
   // Stores all the rects including the split ones, for the video debugger
   // overlay.
   cellRects.clear();
@@ -152,7 +144,7 @@ bool VideoDetector::addChanged(const core::Region &changed) {
   }
 
   oldVideoRegion = videoRegion;
-  videoRegion = region.intersect(fbRect);
+  videoRegion = findLargestVideoArea();
 
   // Return if the video region has changed
   return videoRegion != oldVideoRegion;
@@ -180,30 +172,70 @@ bool VideoDetector::isEdgeCell(const SuperCell &cell) const {
       connectiveActiveNeighbors++;
     }
   }
-  if(connectiveActiveNeighbors == 3 || connectiveActiveNeighbors == 5) {
+  if (connectiveActiveNeighbors == 3 || connectiveActiveNeighbors == 5) {
     return true;
   }
   return false;
 }
 
-// TODO: Implement the algoritm
-core::Rect VideoDetector::findLargestVideoArea() const {
-  core::Rect largest;
-  int activeArea = 0;  // Total number of active cells
-  int largestArea = 0; // Largest rectangle of connected active cells
-  // Avoid unused variable warning
-  (void)largestArea;
-  (void)activeArea;
+// Returns true if two rects overlap, share a border, or corner
+static bool touches(const core::Rect &a, const core::Rect &b) {
+  return a.tl.x <= b.br.x && b.tl.x <= a.br.x && a.tl.y <= b.br.y &&
+         b.tl.y <= a.br.y;
+}
 
-  // set activeArea to number of active cells
+// Adds rect i and every rect connected to it to the group
+static void fillGroup(const std::vector<core::Rect> &rects,
+                      std::vector<bool> &visited, size_t i, core::Rect &bounds,
+                      int &area) {
+  // Basecase, if the rect is already visited
+  if (visited[i])
+    return;
+
+  // Visit current rect if not already
+  visited[i] = true;
+  area += rects[i].area();
+  bounds = bounds.union_boundary(rects[i]);
+
+  // Flood fill all neighbors, recursivly
+  for (size_t j = 0; j < rects.size(); j++) {
+    if (touches(rects[i], rects[j]))
+      fillGroup(rects, visited, j, bounds, area);
+  }
+}
+
+core::Rect VideoDetector::findLargestVideoArea() const {
+  // Get all active cells over the whole framebuffer
+  core::Region region;
   for (const SuperCell &cell : superCells) {
-    if (cell.active) {
-      activeArea++;
-    } else {
+    if (cell.active)
+      collectActiveCells(cell, region);
+  }
+
+  // Create a vector of rectangles in the active area
+  std::vector<core::Rect> rects;
+  region.get_rects(&rects);
+
+  std::vector<bool> visited(rects.size(), false);
+  core::Rect largest;
+  int largestArea = 0;
+
+  // Flood fill from every rect that is not yet part of a group
+  for (size_t i = 0; i < rects.size(); i++) {
+    if (visited[i])
       continue;
+
+    core::Rect bounds = rects[i];
+    int area = 0;
+    fillGroup(rects, visited, i, bounds, area);
+
+    if (area > largestArea) {
+      largestArea = area;
+      largest = bounds;
     }
   }
-  return largest;
+
+  return largest.intersect(fbRect);
 }
 
 unsigned VideoDetector::currentBucket() const {
@@ -275,11 +307,12 @@ void VideoDetector::splitCell(Cell &cell) {
   for (int i = 0; i < 4; i++) {
     cell.children[i].historicalBuckets = cell.historicalBuckets;
     cell.children[i].lastBucket = cell.lastBucket;
-    //cell.children[i].active = cell.active;
+    // cell.children[i].active = cell.active;
   }
 }
 
-void VideoDetector::collectActiveCells(const Cell &cell, core::Region &region) {
+void VideoDetector::collectActiveCells(const Cell &cell,
+                                       core::Region &region) const {
   if (cell.active && cell.children == nullptr) {
     region.assign_union(cell.rect);
   }
@@ -305,7 +338,7 @@ void VideoDetector::refineCell(Cell &cell) {
         anyChildSplit = true;
     }
     if (!anyActive && !anyChildSplit)
-      cell.children.reset(); //Nothing active, merge back to parent
+      cell.children.reset(); // Nothing active, merge back to parent
     return;
   }
 
